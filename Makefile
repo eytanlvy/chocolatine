@@ -1,20 +1,24 @@
 CC = gcc -Wall -g -O2
+OBJ_DIR = obj
 
 .PHONY: clean
 
-all: main
+all: $(OBJ_DIR) main
 
-main: main.o keygen.o polynomial.o
-	$(CC) -o main main.o keygen.o polynomial.o
+main: $(OBJ_DIR)/main.o $(OBJ_DIR)/keygen.o $(OBJ_DIR)/polynomial.o
+	$(CC) -o main $(OBJ_DIR)/main.o $(OBJ_DIR)/keygen.o $(OBJ_DIR)/polynomial.o
 
-main.o: src/main.c includes/includes.h
-	$(CC) -c src/main.c
+$(OBJ_DIR):
+	mkdir -p $(OBJ_DIR)
 
-keygen.o: src/keygen.c includes/keygen.h
-	$(CC) -c src/keygen.c
+$(OBJ_DIR)/main.o: src/main.c includes/includes.h
+	$(CC) -c src/main.c -o $(OBJ_DIR)/main.o
 
-polynomial.o: src/polynomial.c includes/polynomial.h
-	$(CC) -c src/polynomial.c
+$(OBJ_DIR)/keygen.o: src/keygen.c includes/keygen.h
+	$(CC) -c src/keygen.c -o $(OBJ_DIR)/keygen.o
+
+$(OBJ_DIR)/polynomial.o: src/polynomial.c includes/polynomial.h
+	$(CC) -c src/polynomial.c -o $(OBJ_DIR)/polynomial.o
 
 clean:
-	rm -f main *.o
+	rm -rf $(OBJ_DIR) main
