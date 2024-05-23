@@ -19,30 +19,29 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
+#include <math.h>
 
 typedef struct polynomial_s Polynomial;
 
 Polynomial  *polynomial_new                     (size_t degree);
 Polynomial  *polynomial_copy                    (Polynomial *p);
+Polynomial  *polynomial_from_vector			 	(int *v, size_t n);
 void         polynomial_destroy                 (Polynomial **p);
 
 size_t       polynomial_get_degree              (Polynomial *p);
-void         polynomial_set_coefficient         (Polynomial *p, size_t i, double a);
-double       polynomial_get_coefficient         (Polynomial *p, size_t i);
+void         polynomial_set_coefficient         (Polynomial *p, size_t i, int a);
+int       polynomial_get_coefficient         (Polynomial *p, size_t i);
 
 bool         polynomial_is_zero                 (Polynomial *p);
 bool         polynomial_equals                  (Polynomial *p1, Polynomial *p2);
 
-double       polynomial_evaluate                (Polynomial *p, double x);
+int       polynomial_evaluate                (Polynomial *p, int x);
 Polynomial  *polynomial_add                     (Polynomial *p1, Polynomial *p2);
 Polynomial  *polynomial_subtract                (Polynomial *p1, Polynomial *p2);
 Polynomial  *polynomial_multiply                (Polynomial *p1, Polynomial *p2);
-Polynomial  *polynomial_multiply_by_constant    (Polynomial *p, double c);
+Polynomial  *polynomial_multiply_by_constant    (Polynomial *p, int c);
 
 Polynomial  *polynomial_symmetric               (Polynomial *p);
-Polynomial  *polynomial_derivative              (Polynomial *p);
-Polynomial  *polynomial_indefinite_integral     (Polynomial *p, double c);
-double       polynomial_definite_integral       (Polynomial *p, double a, double b);
 
 void         polynomial_mod                     (Polynomial *p, int n);
 Polynomial  *polynomial_multiply_mod            (Polynomial *p1, Polynomial *p2, int n);

@@ -1,24 +1,29 @@
 CC = gcc -Wall -g -O2
 OBJ_DIR = obj
+SRC_DIR = src
+INCLUDE_DIR = includes
 
 .PHONY: clean
 
+# Trouver tous les fichiers sources dans le répertoire src
+SRCS = $(wildcard $(SRC_DIR)/*.c)
+
+# Générer les noms de fichiers objets correspondants
+OBJS = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
+
 all: $(OBJ_DIR) main
 
-main: $(OBJ_DIR)/main.o $(OBJ_DIR)/keygen.o $(OBJ_DIR)/polynomial.o
-	$(CC) -o main $(OBJ_DIR)/main.o $(OBJ_DIR)/keygen.o $(OBJ_DIR)/polynomial.o
+main: $(OBJS)
+	$(CC) -o main $(OBJS)
 
+# Créer le répertoire obj s'il n'existe pas
 $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
 
-$(OBJ_DIR)/main.o: src/main.c includes/includes.h
-	$(CC) -c src/main.c -o $(OBJ_DIR)/main.o
-
-$(OBJ_DIR)/keygen.o: src/keygen.c includes/keygen.h
-	$(CC) -c src/keygen.c -o $(OBJ_DIR)/keygen.o
-
-$(OBJ_DIR)/polynomial.o: src/polynomial.c includes/polynomial.h
-	$(CC) -c src/polynomial.c -o $(OBJ_DIR)/polynomial.o
+# Règle générique pour compiler les fichiers .c en .o
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
+	$(CC) -I$(INCLUDE_DIR) -c $< -o $@
 
 clean:
 	rm -rf $(OBJ_DIR) main
+

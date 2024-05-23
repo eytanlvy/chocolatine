@@ -19,7 +19,7 @@
 struct polynomial_s
 {
     size_t degree;
-    double *terms;
+    int *terms;
 };
 
 static bool          polynomial_valid_index  (Polynomial *p, size_t i);
@@ -40,7 +40,7 @@ Polynomial *polynomial_new(size_t n)
     Polynomial *p = malloc(sizeof(struct polynomial_s));
     if (!p) return NULL;
 
-    p->terms = calloc(n + 1, sizeof(double));
+    p->terms = calloc(n + 1, sizeof(int));
     if (!p->terms) {
         free(p);
         return NULL;
@@ -69,6 +69,26 @@ Polynomial *polynomial_copy(Polynomial *p)
         copy->terms[i] = p->terms[i];
 
     return copy;
+}
+
+/**
+ * Allocates memory for a new polynomial from a vector.
+ *
+ * @param[in] v the vector
+ * @param[in] n the size of the vector
+ *
+ * @return a new polynomial or NULL if memory allocation fails
+ */
+Polynomial *polynomial_from_vector(int *v, size_t n)
+{
+    Polynomial *p = polynomial_new(n);
+    if (!p) return NULL;
+
+    for (size_t i = 0; i < n; i++)
+        p->terms[i] = v[i];
+
+    return p;
+
 }
 
 /**
@@ -107,7 +127,7 @@ size_t polynomial_get_degree(Polynomial *p)
  * @param[in] i the exponent
  * @param[in] a the coefficient
  */
-void polynomial_set_coefficient(Polynomial *p, size_t i, double a)
+void polynomial_set_coefficient(Polynomial *p, size_t i, int a)
 {
     if (p == NULL || !polynomial_valid_index(p, i)) return;
 
@@ -124,7 +144,7 @@ void polynomial_set_coefficient(Polynomial *p, size_t i, double a)
  *
  * @return the coefficient of the term of exponent i
  */
-double polynomial_get_coefficient(Polynomial *p, size_t i)
+int polynomial_get_coefficient(Polynomial *p, size_t i)
 {
     if (p == NULL || !polynomial_valid_index(p, i)) return 0.0;
 
@@ -175,15 +195,27 @@ bool polynomial_equals(Polynomial *p1, Polynomial *p2)
  *
  * @return the value of p at x
  */
-double polynomial_evaluate(Polynomial *p, double x)
+int polynomial_evaluate(Polynomial *p, int x)
 {
-    if (p == NULL) return 0.0;
+    if (p->degree == 0) {
+        return p->terms[0];
+    }
 
-    double result = 0;
+    int mid = (p->degree + 1) / 2;
 
-    size_t i = p->degree+1;
-    
-    while(--i) result = result * x + p->terms[i];
+    Polynomial bottom_half;
+    bottom_half.degree = mid - 1;
+    bottom_half.terms = p->terms;
+
+    Polynomial top_half;
+    top_half.degree = p->degree - mid;
+    top_half.terms = p->terms + mid;
+
+    int y_bottom = polynomial_evaluate(&bottom_half, x);
+    int y_top = polynomial_evaluate(&top_half, x);
+
+    int x_pow_mid = pow(x, mid);
+    int result = y_top * x_pow_mid + y_bottom;
 
     return result;
 }
@@ -283,7 +315,7 @@ Polynomial *polynomial_multiply(Polynomial *p1, Polynomial *p2)
  *
  * @return the result of multiplying the polynomial by the constant
  */
-Polynomial *polynomial_multiply_by_constant(Polynomial *p, double c)
+Polynomial *polynomial_multiply_by_constant(Polynomial *p, int c)
 {
     if (p == NULL) return NULL;
     if (c == 0) return polynomial_zero();
@@ -309,71 +341,6 @@ Polynomial *polynomial_symmetric(Polynomial *p)
     return polynomial_multiply_by_constant(p, -1);
 }
 
-/**
- * Computes the derivative of a polynomial.
- *
- * @param[in] p the polynomial
- *
- * @return the derivative of the polynomial
- */
-Polynomial *polynomial_derivative(Polynomial *p)
-{
-    if (p == NULL) return NULL;
-
-    if (polynomial_get_degree(p) < 1) return polynomial_zero();
-
-    Polynomial *result = polynomial_new(p->degree - 1);
-    if (!result) return NULL;
-
-    result->terms[0] = 0.0;
-
-    for (size_t i = 1; i <= p->degree; i++)
-        result->terms[i-1] = p->terms[i] * i;
-
-    return result;
-}
-
-/**
- * Computes the indefinite integral of a polynomial.
- *
- * @param[in] p the polynomial to be integrated
- * @param[in] c the arbitrary constant of integration
- *
- * @return the integrated polynomial
- */
-Polynomial *polynomial_indefinite_integral(Polynomial *p, double c)
-{
-    if (p == NULL) return NULL;
-
-    Polynomial *result = polynomial_new(p->degree + 1);
-    if (!result) return NULL;
-
-    result->terms[0] = c;
-
-    for (size_t i = 0; i <= p->degree; i++)
-        result->terms[i+1] = p->terms[i] / (i+1);
-
-    return result;
-}
-
-/**
- * Computes the definite integral of a polynomial in the interval [a, b].
- *
- * @param[in] p the polynomial to be integrated
- */
-double polynomial_definite_integral(Polynomial *p, double a, double b)
-{
-    if (p == NULL) return 0.0;
-
-    Polynomial *indefinite = polynomial_indefinite_integral(p, 0);
-    if (!indefinite) return 0.0;
-
-    double val = polynomial_evaluate(indefinite, b) - polynomial_evaluate(indefinite, a);
-
-    polynomial_destroy(&indefinite);
-
-    return val;
-}
 
 /**
  * Checks if an index is valid in the terms array.
@@ -445,7 +412,7 @@ static Polynomial *polynomial_reduce(Polynomial *p)
     while (degree > 0 && p->terms[degree] == 0.0) degree--;
 
     if (degree != p->degree)
-        p->terms = realloc(p->terms, (degree+1) * sizeof(double));
+        p->terms = realloc(p->terms, (degree+1) * sizeof(int));
 
     p->degree = degree;
 
