@@ -11,6 +11,7 @@ void clear_key_pair(KeyPair *key_pair) {
     fmpz_clear(key_pair->sk.w);
     fmpz_clear(key_pair->pk.d);
     fmpz_clear(key_pair->pk.r);
+    free(key_pair);
 }
 
 void gen_random_polynomial(fmpz_poly_t v, int n, int t) {
