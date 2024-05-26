@@ -1,23 +1,54 @@
 #include "../includes/somewhat.h"
+#include "../includes/modulus.h"
+#include "../includes/utils.h"
 
-void gen_noise_vector(fmpz *noise, int n, double q) {
-    for (int i = 0; i < n; i++) {
-        fmpz_init(noise + i);
-    }
-
+void gen_noise_vector(fmpz_poly_t noise, int n, double q) {
     srand(time(NULL));
 
     for (int i = 0; i < n; i++) {
         double rand_val = (double)rand() / RAND_MAX;
         if (rand_val < q) {
-            fmpz_set_si(noise + i, 0);
+            fmpz_poly_set_coeff_si(noise, i, 0);
         } else if (rand_val < q + (1 - q) / 2) {
-            fmpz_set_si(noise + i, -1);
+            fmpz_poly_set_coeff_si(noise, i, -1);
         } else {
-            fmpz_set_si(noise + i, 1);
+            fmpz_poly_set_coeff_si(noise, i, 1);
         }
     }
 }
-void sw_encrypt_bit(int bit, int q, PublicKey *pk){}
 
-int sw_decrypt_bit(int n, SecretKey *sk){ return 0;}
+void sw_encrypt_bit(fmpz_t c, int bit, int non_zero, PublicKey *pk){
+    double q;
+    fmpz_poly_t u;
+
+    fmpz_poly_init(u);
+    q = (pk->n - (double)non_zero) / pk->n;
+
+    gen_noise_vector(u, pk->n, q);
+
+    fmpz_poly_evaluate_horner_fmpz(c, u, pk->r);
+    fmpz_mul_ui(c, c, 2);
+    fmpz_add_ui(c, c, bit);
+
+    normalize_mod(c, c, pk->d);
+
+    fmpz_poly_clear(u);
+}
+
+int sw_decrypt_bit(fmpz_t c, KeyPair *key){
+    fmpz_t temp, mod_result;
+    fmpz_init(temp);
+    fmpz_init(mod_result);
+
+    fmpz_mul(temp, c, key->sk.w);
+
+    normalize_mod(temp, temp, key->pk.d);
+
+    fmpz_mod_ui(mod_result, temp, 2);
+    int result = fmpz_get_ui(mod_result);
+
+    fmpz_clear(temp);
+    fmpz_clear(mod_result);
+
+    return result;
+}

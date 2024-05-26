@@ -1,3 +1,6 @@
+#ifndef _KEYGEN_H_
+#define _KEYGEN_H_
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,7 +13,6 @@
 #include <flint/fmpz_mat.h>
 
 
-
 typedef struct SecretKey {
 	fmpz_t w;
 } SecretKey;
@@ -18,6 +20,7 @@ typedef struct SecretKey {
 typedef struct PublicKey {
 	fmpz_t d;
 	fmpz_t r;
+	int n;
 } PublicKey;
 
 typedef struct KeyPair {
@@ -25,9 +28,9 @@ typedef struct KeyPair {
 	PublicKey pk;
 } KeyPair;
 
+
 void init_key_pair(KeyPair *key_pair);
 void clear_key_pair(KeyPair *key_pair);
-
 
 void gen_random_polynomial(fmpz_poly_t v, int n, int t);
 void compute_scaled_inverse(fmpz_poly_t w, fmpz_t d, const fmpz_poly_t v, slong n);
@@ -39,3 +42,4 @@ slong find_odd_coefficient_index(const fmpz_poly_t w);
 void calculate_r_and_verify(fmpz_t r, const fmpz_poly_t w, fmpz_t d, slong n);
 KeyPair *gen_key_pair(int n, int t);
 
+#endif
