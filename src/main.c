@@ -1,103 +1,52 @@
-#include "../includes/polynomial.h"
-#include "../includes/keygen.h"
-#include "../includes/somewhat.h"
-#include "../includes/matrix.h"
 #include <stdio.h>
-
-void print_polynomial(Polynomial* p){
-	size_t deg = polynomial_get_degree(p);
-	int coefi = polynomial_get_coefficient(p,deg);
-	if(!deg){
-		printf("%d",coefi);
-		return;
-	}
-	if(coefi == 1){
-		if(deg == 1){
-			printf("x");
-		}
-		else{
-			printf("x^%ld",deg);
-		}
-	}
-	else if(coefi == -1){
-		if(deg == 1){
-			printf("-x");
-		}
-		else{
-			printf("x^%ld",deg);
-		}
-	}
-	else{
-		if(deg == 1){
-			printf("%dx",coefi);
-		}
-		else{
-			printf("%dx^%ld",coefi,deg);
-		}
-
-	}
-	for(int i = deg - 1; i >= 0; i--){
-		coefi = polynomial_get_coefficient(p,i);
-		if(coefi == 0){
-			continue;
-		}
-		if(coefi > 0){
-			if(coefi == 1 && i){
-				printf(" + ");
-			}
-			else{
-				printf(" + %i",coefi);
-			}
-		}
-		else{
-			if(coefi == 1 && i){
-				printf(" - ");
-			}
-			else{
-				printf(" - %i",-(coefi));
-			}
-		}
-		if(i > 1){
-			printf("x^%i",i);
-		}
-		else if (i == 1){
-			printf("x");
-		}
-	}
-}
+#include <stdlib.h>
+#include <time.h>
+#include "../includes/utils.h"
 
 int main() {
-	// Polynomial* a = polynomial_new (1);
-	// polynomial_set_coefficient(a, 1, 1);
-	
-	// 	print_polynomial(a);
-	// printf("\n");
-	// polynomial_mod(a,2);
+    int n = 2048;
+    int t = 200;
 
-	// print_polynomial(a);
-	// printf("\n");
+    clock_t start_time = clock();
 
-	// polynomial_destroy (&a);
+    KeyPair *key_pair = gen_key_pair(n, t);
 
-	//Test determinant()
-	int n = 3;
-	int **matrix = malloc(n*sizeof(int*));
-	for(int i = 0; i < n; i++){
-		matrix[i] = malloc(n*sizeof(int));
-		for(int j = 0; j < n; j++){
-			if (i == j){
-				matrix[i][j] = 2;
-			}
-			else{
-				matrix[i][j] = 0;
-			}
-		}
-	}
-	print_matrix(matrix,n);
-	printf("Determinant: %i\n",determinant(matrix,n));
-	for(int i = 0; i < n; i++){
-		free(matrix[i]);
-	}
-	free(matrix);
-	return 0;
+    clock_t end_time = clock();
+    double elapsed_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
+
+    printf("Temps de génération des clés: %f secondes\n", elapsed_time);
+
+    // Écrire les valeurs de la clé privée et de la clé publique dans un fichier
+    FILE *fout = fopen("key_pair.txt", "w");
+    if (fout == NULL) {
+        perror("Erreur lors de l'ouverture du fichier");
+        return 1;
+    }
+
+    char *hex_str;
+
+    fprintf(fout, "Secret key w: ");
+    hex_str = fmpz_get_str(NULL, 16, key_pair->sk.w);
+    fprintf(fout, "%s\n", hex_str);
+    free(hex_str);
+
+    fprintf(fout, "Public key d: ");
+    hex_str = fmpz_get_str(NULL, 16, key_pair->pk.d);
+    fprintf(fout, "%s\n", hex_str);
+    free(hex_str);
+
+    fprintf(fout, "Public key r: ");
+    hex_str = fmpz_get_str(NULL, 16, key_pair->pk.r);
+    fprintf(fout, "%s\n", hex_str);
+    free(hex_str);
+
+    fclose(fout);
+
+    // Nettoyer la mémoire
+    fmpz_clear(key_pair->sk.w);
+    fmpz_clear(key_pair->pk.d);
+    fmpz_clear(key_pair->pk.r);
+    free(key_pair);
+
+    return 0;
 }

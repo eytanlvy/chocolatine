@@ -1,26 +1,41 @@
-#ifndef __KEYGEN_H__
-#define __KEYGEN_H__
-
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
-#include "polynomial.h"
-#include "matrix.h"
+#include <unistd.h>
+#include <flint/flint.h>
+#include <flint/fmpz.h>
+#include <flint/fmpz_poly.h>
+#include <flint/fmpz_vec.h>
+#include <flint/fmpz_mat.h>
 
 
-typedef struct public_key_s{
-	int r;
-	int d;
+
+typedef struct SecretKey {
+	fmpz_t w;
+} SecretKey;
+
+typedef struct PublicKey {
+	fmpz_t d;
+	fmpz_t r;
 } PublicKey;
 
-typedef struct keypair_s{
-	PublicKey *public_key;
-	int private_key;
+typedef struct KeyPair {
+	SecretKey sk;
+	PublicKey pk;
 } KeyPair;
 
-int* gen_random_vector(int size);
-int** gen_matrix_from_vector(int* vector, int size);
-bool is_odd(int num);
-int key_is_valid(int *v, int n);
-int gen_keys(int n);
+void init_key_pair(KeyPair *key_pair);
+void clear_key_pair(KeyPair *key_pair);
 
-#endif
+
+void gen_random_polynomial(fmpz_poly_t v, int n, int t);
+void compute_scaled_inverse(fmpz_poly_t w, fmpz_t d, const fmpz_poly_t v, slong n);
+
+void build_rotation_matrix(fmpz_mat_t mat, const fmpz_poly_t v, slong n);
+void compute_rotation_determinant(fmpz_t det, const fmpz_poly_t v, slong n);
+
+slong find_odd_coefficient_index(const fmpz_poly_t w);
+void calculate_r_and_verify(fmpz_t r, const fmpz_poly_t w, fmpz_t d, slong n);
+KeyPair *gen_key_pair(int n, int t);
+
