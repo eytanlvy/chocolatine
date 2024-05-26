@@ -128,26 +128,30 @@ void calculate_r_and_verify(fmpz_t r, const fmpz_poly_t w, fmpz_t d, slong n) {
 }
 
 KeyPair *gen_key_pair(int n, int t) {
-    KeyPair *key_pair = (KeyPair *)malloc(sizeof(KeyPair));
-    init_key_pair(key_pair);
-
+    KeyPair *key_pair;
     fmpz_poly_t v, w;
     fmpz_t d, r, w_odd;
+    slong w_odd_index;
+
+    key_pair = (KeyPair *)malloc(sizeof(KeyPair));
+    if (key_pair == NULL) {
+        fprintf(stderr, "Error: Unable to allocate memory for key pair\n");
+        exit(1);
+    }
+    init_key_pair(key_pair);
+
     fmpz_init(d);
     fmpz_init(r);
     fmpz_init(w_odd);
     fmpz_poly_init(v);
     fmpz_poly_init(w);
 
-    slong w_odd_index;
-
     do {
+        fmpz_set_ui(r, 0);
         gen_random_polynomial(v, n, t);
         compute_scaled_inverse(w, d, v, n);
         w_odd_index = find_odd_coefficient_index(w);
-        if (!fmpz_is_odd(d) || w_odd_index == -1){
-            continue;
-        } else {
+        if (w_odd_index != -1 && fmpz_is_odd(d)) {
             calculate_r_and_verify(r, w, d, n);
         }
     } while (fmpz_is_zero(r));
@@ -157,6 +161,7 @@ KeyPair *gen_key_pair(int n, int t) {
     fmpz_set(key_pair->sk.w, w_odd);
     fmpz_set(key_pair->pk.d, d);
     fmpz_set(key_pair->pk.r, r);
+    key_pair->pk.n = n;
 
     fmpz_poly_clear(v);
     fmpz_poly_clear(w);
