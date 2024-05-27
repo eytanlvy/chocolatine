@@ -141,6 +141,8 @@ void test_somewhat_int_encrypt(int n, int t, int p) {
     double elapsed_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
 
     printf("Key generation achieved in %f seconds\n", elapsed_time);
+	
+	key_pair_to_file(key_pair, "key_pair.txt");
 
     int non_zero = 15;
 
