@@ -166,3 +166,54 @@ void test_somewhat_int_op(int n, int t, int p) {
     free(bit);
     free(cypher_bit);
 }
+
+void test_somewhat_int_mul(int n, int t, int p) {
+    clock_t start_time = clock();
+
+    KeyPair *key_pair = gen_key_pair(n, t, p);
+
+    clock_t end_time = clock();
+    double elapsed_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
+
+    printf("Key generation achieved in %f seconds\n", elapsed_time);
+    
+    key_pair_to_file(key_pair, "key_pair.txt");
+
+    int non_zero = 15;
+
+    fmpz_t product, cypher_product, factor, cypher_factor, p_fmpz;
+    fmpz_init(product);
+    fmpz_init(cypher_product);
+    fmpz_init(factor);
+    fmpz_init_set_ui(p_fmpz, p);
+    // Generate random value for res
+    flint_rand_t state;
+    flint_randinit(state);
+    fmpz_randm(product, state, p_fmpz);
+    fmpz_randm(factor, state, p_fmpz);
+    flint_randclear(state);
+    sw_encrypt(cypher_product, product, non_zero, &key_pair->pk);
+    sw_encrypt(cypher_factor, factor, non_zero, &key_pair->pk);
+    fmpz_clear(factor);
+    int int_factor = fmpz_get_ui(factor);
+    int nb_mult = -1;
+    int expected_and, decrypted_and, temp;
+    do{
+        temp = fmpz_get_ui(product);
+        and(cypher_product, cypher_product, cypher_factor, &key_pair->pk);
+
+        sw_decrypt(product, cypher_product, key_pair);
+        decrypted_and = fmpz_get_ui(product);
+        expected_and = (temp * int_factor) % p;
+
+        nb_mult++;
+    }
+    while(expected_and == decrypted_and);
+
+    printf("nb_mult = %d\n",nb_mult);
+    clear_key_pair(key_pair);
+    fmpz_clear(cypher_factor);
+    fmpz_clear(product);
+    fmpz_clear(cypher_product);
+    fmpz_clear(p_fmpz);
+}
