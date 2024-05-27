@@ -6,7 +6,7 @@ INCLUDE_DIR = includes
 ifdef MAC
 	FLAGS = -I/opt/homebrew/include -L/opt/homebrew/lib -lflint -lgmp
 else
-	FLAGS = -lflint -lgmp
+	FLAGS = -I/usr/local/include -L/usr/local/lib -lflint -lgmp
 endif
 
 SRCS = $(wildcard $(SRC_DIR)/*.c)
