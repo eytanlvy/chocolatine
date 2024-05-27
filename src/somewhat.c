@@ -52,3 +52,38 @@ int sw_decrypt_bit(fmpz_t c, KeyPair *key){
 
     return result;
 }
+
+void sw_encrypt_int(fmpz_t c, int m, int p, int non_zero, PublicKey *pk){
+    double q;
+    fmpz_poly_t u;
+
+    fmpz_poly_init(u);
+    q = (pk->n - (double)non_zero) / pk->n;
+
+    gen_noise_vector(u, pk->n, q);
+
+    fmpz_poly_evaluate_horner_fmpz(c, u, pk->r);
+    fmpz_mul_ui(c, c, p);
+    fmpz_add_ui(c, c, m);
+    normalize_mod(c, c, pk->d);
+
+    fmpz_poly_clear(u);
+}
+
+int sw_decrypt_int(fmpz_t c, int p, KeyPair *key) {
+    fmpz_t temp, mod_result;
+    fmpz_init(temp);
+    fmpz_init(mod_result);
+
+    fmpz_mul(temp, c, key->sk.w);
+
+    normalize_mod(temp, temp, key->pk.d);
+
+    fmpz_mod_ui(mod_result, temp, p);
+    int result = fmpz_get_ui(mod_result);
+
+    fmpz_clear(temp);
+    fmpz_clear(mod_result);
+
+    return result;
+}

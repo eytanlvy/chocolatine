@@ -59,6 +59,7 @@ void compute_rotation_determinant(fmpz_t det, const fmpz_poly_t v, slong n) {
 
     fmpz_mat_clear(mat);
 }
+
 void compute_scaled_inverse(fmpz_poly_t w, fmpz_t d, const fmpz_poly_t v, slong n) {
     fmpz_poly_t fn, s, t;
     fmpz_poly_init(fn);
@@ -68,7 +69,7 @@ void compute_scaled_inverse(fmpz_poly_t w, fmpz_t d, const fmpz_poly_t v, slong 
     fmpz_poly_set_coeff_ui(fn, n, 1);
     fmpz_poly_set_coeff_ui(fn, 0, 1);
 
-    fmpz_poly_xgcd(d, s, t, fn, v);
+    fmpz_poly_xgcd(d, s, t, v, fn);
 
     fmpz_poly_set(w, s);
 
@@ -86,7 +87,6 @@ slong find_odd_coefficient_index(const fmpz_poly_t w) {
     }
     return -1;
 }
-
 
 void calculate_r_and_verify(fmpz_t r, const fmpz_poly_t w, fmpz_t d, slong n) {
     fmpz_t w0, w1, w1_inv, r_pow_n, neg_one;
