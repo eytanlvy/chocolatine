@@ -20,6 +20,7 @@ typedef struct SecretKey {
 typedef struct PublicKey {
 	fmpz_t d;
 	fmpz_t r;
+	fmpz_t p; //message space
 	int n;
 } PublicKey;
 
@@ -40,6 +41,7 @@ void compute_rotation_determinant(fmpz_t det, const fmpz_poly_t v, slong n);
 
 slong find_odd_coefficient_index(const fmpz_poly_t w);
 void calculate_r_and_verify(fmpz_t r, const fmpz_poly_t w, fmpz_t d, slong n);
-KeyPair *gen_key_pair(int n, int t);
+int check_modulo_conditions(const fmpz_t d, const fmpz_t w, const fmpz_t p);
+KeyPair *gen_key_pair(int n, int t, int p);
 
 #endif
