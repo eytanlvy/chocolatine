@@ -27,52 +27,48 @@ void key_pair_to_file(const KeyPair *key_pair, const char *filename) {
 }
 
 void test_somewhat_bit_encrypt(int n, int t) {
-	clock_t start_time = clock();
-
-    KeyPair *key_pair = gen_key_pair(n, t);
-
+    clock_t start_time = clock();
+    KeyPair *key_pair = gen_key_pair(n, t, 2);
     clock_t end_time = clock();
     double elapsed_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
 
     printf("Key generation achieved in %f seconds\n", elapsed_time);
 
-    key_pair_to_file(key_pair, "key_pair.txt");
-
     int non_zero = 15;
-    fmpz_t c;
-	fmpz_init(c);
+    fmpz_t c, bit, res;
+    fmpz_init(c);
+    fmpz_init(bit);
+    fmpz_init(res);
 
     int success_count = 0;
     int num_tests = 10;
-	int *bit = malloc(sizeof(int) * num_tests);
-	for (int i = 0; i < num_tests; i++) {
-		bit[i] = i & 1;
-	}
 
     for (int i = 0; i < num_tests; i++) {
-        sw_encrypt_bit(c, bit[i], non_zero, &key_pair->pk);
+        fmpz_set_ui(bit, i & 1); // Set bit to either 0 or 1
 
-        int res = sw_decrypt_bit(c, key_pair);
+        sw_encrypt(c, bit, non_zero, &key_pair->pk);
+        sw_decrypt(res, c, key_pair);
 
-        if (res == bit[i]) {
+        if (fmpz_cmp(res, bit) == 0) {
             success_count++;
-		}
+        }
     }
 
     printf("Number of successful decryptions: %d out of %d\n", success_count, num_tests);
 
     clear_key_pair(key_pair);
-	fmpz_clear(c);
-	free(bit);
+    fmpz_clear(c);
+    fmpz_clear(bit);
+    fmpz_clear(res);
 }
+
 
 void test_somewhat_bit_op(int n, int t) {
     clock_t start_time = clock();
-    KeyPair *key_pair = gen_key_pair(n, t);
+    KeyPair *key_pair = gen_key_pair(n, t, 2);
     clock_t end_time = clock();
     double elapsed_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
     printf("Key generation achieved in %f seconds\n", elapsed_time);
-    key_pair_to_file(key_pair, "key_pair.txt");
 
     srand(time(NULL));
     int tableau[10];
@@ -81,20 +77,22 @@ void test_somewhat_bit_op(int n, int t) {
     }
 
     int non_zero = 15;
-    fmpz_t c[10], c_xor, c_and;
+    fmpz_t c[10], c_xor, c_and, bit, res;
     for (int i = 0; i < 10; i++) {
         fmpz_init(c[i]);
     }
     fmpz_init(c_xor);
     fmpz_init(c_and);
+    fmpz_init(bit);
+    fmpz_init(res);
 
     int success_count_xor = 0;
     int success_count_and = 0;
     int total_tests = 0;
 
     for (int j = 0; j < 10; j++) {
-        // Chiffrer les bits
-        sw_encrypt_bit(c[j], tableau[j], non_zero, &(key_pair->pk));
+        fmpz_set_ui(bit, tableau[j]);
+        sw_encrypt(c[j], bit, non_zero, &(key_pair->pk));
     }
 
     for (int i = 0; i < 10; i++) {
@@ -104,8 +102,11 @@ void test_somewhat_bit_op(int n, int t) {
             and(c_and, c[i], c[j], &(key_pair->pk));
 
             // Déchiffrer les résultats
-            int decrypted_xor = sw_decrypt_bit(c_xor, key_pair);
-            int decrypted_and = sw_decrypt_bit(c_and, key_pair);
+            sw_decrypt(res, c_xor, key_pair);
+            int decrypted_xor = fmpz_get_ui(res);
+
+            sw_decrypt(res, c_and, key_pair);
+            int decrypted_and = fmpz_get_ui(res);
 
             if (decrypted_xor == (tableau[i] ^ tableau[j])) {
                 success_count_xor++;
@@ -125,24 +126,23 @@ void test_somewhat_bit_op(int n, int t) {
     }
     fmpz_clear(c_xor);
     fmpz_clear(c_and);
+    fmpz_clear(bit);
+    fmpz_clear(res);
 
     clear_key_pair(key_pair);
 }
 
-void test_somewhat_int_encrypt(int n, int t) {
+void test_somewhat_int_encrypt(int n, int t, int p) {
     clock_t start_time = clock();
 
-    KeyPair *key_pair = gen_key_pair(n, t);
+    KeyPair *key_pair = gen_key_pair(n, t, p);
 
     clock_t end_time = clock();
     double elapsed_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
 
     printf("Key generation achieved in %f seconds\n", elapsed_time);
 
-
     int non_zero = 15;
-    fmpz_t p;
-    fmpz_init_set_ui(p, 100);
 
     fmpz_t c, res;
     fmpz_init(c);
@@ -152,13 +152,21 @@ void test_somewhat_int_encrypt(int n, int t) {
     int num_tests = 10;
     fmpz_t *bit = malloc(sizeof(fmpz_t) * num_tests);
     for (int i = 0; i < num_tests; i++) {
-        fmpz_init_set_ui(bit[i], i * 10);
+        fmpz_init(bit[i]);
     }
 
+    // Generate random values for the test within the range [0, p-1]
+    flint_rand_t state;
+    flint_randinit(state);
     for (int i = 0; i < num_tests; i++) {
-        sw_encrypt_int(c, bit[i], p, non_zero, &key_pair->pk);
+        fmpz_randm(bit[i], state, key_pair->pk.p);
+    }
+    flint_randclear(state);
 
-        sw_decrypt_int(res, c, p, key_pair);
+    for (int i = 0; i < num_tests; i++) {
+        sw_encrypt(c, bit[i], non_zero, &key_pair->pk);
+
+        sw_decrypt(res, c, key_pair);
 
         if (fmpz_equal(res, bit[i])) {
             success_count++;
@@ -171,7 +179,6 @@ void test_somewhat_int_encrypt(int n, int t) {
     clear_key_pair(key_pair);
     fmpz_clear(c);
     fmpz_clear(res);
-    fmpz_clear(p);
     for (int i = 0; i < num_tests; i++) {
         fmpz_clear(bit[i]);
     }

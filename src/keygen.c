@@ -5,12 +5,14 @@ void init_key_pair(KeyPair *key_pair) {
     fmpz_init(key_pair->sk.w);
     fmpz_init(key_pair->pk.d);
     fmpz_init(key_pair->pk.r);
+    fmpz_init(key_pair->pk.p);
 }
 
 void clear_key_pair(KeyPair *key_pair) {
     fmpz_clear(key_pair->sk.w);
     fmpz_clear(key_pair->pk.d);
     fmpz_clear(key_pair->pk.r);
+    fmpz_clear(key_pair->pk.p);
     free(key_pair);
 }
 
@@ -127,7 +129,23 @@ void calculate_r_and_verify(fmpz_t r, const fmpz_poly_t w, fmpz_t d, slong n) {
     fmpz_clear(neg_one);
 }
 
-KeyPair *gen_key_pair(int n, int t) {
+int check_modulo_conditions(const fmpz_t d, const fmpz_t w, const fmpz_t p) {
+    fmpz_t d_mod_p, w_mod_p;
+    fmpz_init(d_mod_p);
+    fmpz_init(w_mod_p);
+
+    fmpz_mod(d_mod_p, d, p);
+    fmpz_mod(w_mod_p, w, p);
+
+    int conditions_met = (fmpz_cmp_ui(d_mod_p, 1) == 0) && (fmpz_cmp_ui(w_mod_p, 1) == 0);
+
+    fmpz_clear(d_mod_p);
+    fmpz_clear(w_mod_p);
+
+    return conditions_met;
+}
+
+KeyPair *gen_key_pair(int n, int t, int p) {
     KeyPair *key_pair;
     fmpz_poly_t v, w;
     fmpz_t d, r, w_odd;
@@ -139,6 +157,7 @@ KeyPair *gen_key_pair(int n, int t) {
         exit(1);
     }
     init_key_pair(key_pair);
+    fmpz_set_ui(key_pair->pk.p, p);
 
     fmpz_init(d);
     fmpz_init(r);
@@ -153,6 +172,9 @@ KeyPair *gen_key_pair(int n, int t) {
         w_odd_index = find_odd_coefficient_index(w);
         if (w_odd_index != -1 && fmpz_is_odd(d)) {
             calculate_r_and_verify(r, w, d, n);
+            if (!check_modulo_conditions(d, w, key_pair->pk.p)) {
+                continue;
+            }
         }
     } while (fmpz_is_zero(r));
 
