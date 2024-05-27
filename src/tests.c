@@ -141,7 +141,7 @@ void test_somewhat_int_encrypt(int n, int t, int p) {
     double elapsed_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
 
     printf("Key generation achieved in %f seconds\n", elapsed_time);
-	
+
 	key_pair_to_file(key_pair, "key_pair.txt");
 
     int non_zero = 15;
@@ -181,6 +181,94 @@ void test_somewhat_int_encrypt(int n, int t, int p) {
     clear_key_pair(key_pair);
     fmpz_clear(c);
     fmpz_clear(res);
+    for (int i = 0; i < num_tests; i++) {
+        fmpz_clear(bit[i]);
+    }
+    free(bit);
+}
+
+void test_somewhat_int_op(int n, int t, int p) {
+    clock_t start_time = clock();
+
+    KeyPair *key_pair = gen_key_pair(n, t, p);
+
+    clock_t end_time = clock();
+    double elapsed_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
+
+    printf("Key generation achieved in %f seconds\n", elapsed_time);
+    
+    key_pair_to_file(key_pair, "key_pair.txt");
+
+    int non_zero = 15;
+
+    fmpz_t c1, c2, c_xor, c_and, res, p_fmpz;
+    fmpz_init(c1);
+    fmpz_init(c2);
+    fmpz_init(c_xor);
+    fmpz_init(c_and);
+    fmpz_init(res);
+    fmpz_init_set_ui(p_fmpz, p);
+
+    int success_count_xor = 0;
+    int success_count_and = 0;
+    int total_tests = 0;
+    int num_tests = 10;
+    fmpz_t *bit = malloc(sizeof(fmpz_t) * num_tests);
+    for (int i = 0; i < num_tests; i++) {
+        fmpz_init(bit[i]);
+    }
+
+    // Generate random values for the test within the range [0, p-1]
+    flint_rand_t state;
+    flint_randinit(state);
+    for (int i = 0; i < num_tests; i++) {
+        fmpz_randm(bit[i], state, p_fmpz);
+    }
+    flint_randclear(state);
+
+    for (int i = 0; i < num_tests; i++) {
+        for (int j = i + 1; j < num_tests; j++) {
+            // Chiffrer les messages
+            sw_encrypt(c1, bit[i], non_zero, &key_pair->pk);
+            sw_encrypt(c2, bit[j], non_zero, &key_pair->pk);
+
+            // Effectuer les opérations XOR et AND
+            xor(c_xor, c1, c2, &key_pair->pk);
+            and(c_and, c1, c2, &key_pair->pk);
+
+            // Déchiffrer les résultats
+            sw_decrypt(res, c_xor, key_pair);
+            int decrypted_xor = fmpz_get_ui(res);
+            int expected_xor = (fmpz_get_ui(bit[i]) + fmpz_get_ui(bit[j])) % p;
+
+            sw_decrypt(res, c_and, key_pair);
+            int decrypted_and = fmpz_get_ui(res);
+            int expected_and = (fmpz_get_ui(bit[i]) * fmpz_get_ui(bit[j])) % p;
+
+            // Vérifier les résultats
+            if (decrypted_xor == expected_xor) {
+                success_count_xor++;
+            }
+            if (decrypted_and == expected_and) {
+                success_count_and++;
+            }
+            total_tests++;
+
+            printf("XOR %d: Expected = %d, got= %d\n", total_tests, expected_xor, decrypted_xor);
+            printf("AND %d: Expected = %d, got = %d\n", total_tests, expected_and, decrypted_and);
+        }
+    }
+
+    printf("Total XOR tests succeeded: %d/%d\n", success_count_xor, total_tests);
+    printf("Total AND tests succeeded: %d/%d\n", success_count_and, total_tests);
+
+    clear_key_pair(key_pair);
+    fmpz_clear(c1);
+    fmpz_clear(c2);
+    fmpz_clear(c_xor);
+    fmpz_clear(c_and);
+    fmpz_clear(res);
+    fmpz_clear(p_fmpz);
     for (int i = 0; i < num_tests; i++) {
         fmpz_clear(bit[i]);
     }

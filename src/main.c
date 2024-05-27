@@ -6,6 +6,6 @@ int main(int argc, char **argv) {
     int t = (argc > 2) ? atoi(argv[2]) : 128;
 	int p = (argc > 3) ? atoi(argv[3]) : 2;
 	
-	test_somewhat_int_encrypt(n,t,p);
+	test_somewhat_int_op(n,t,p);
     return 0;
 }
