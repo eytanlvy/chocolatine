@@ -139,32 +139,41 @@ void test_somewhat_int_encrypt(int n, int t) {
 
     printf("Key generation achieved in %f seconds\n", elapsed_time);
 
+
     int non_zero = 15;
-    int p = 100;
-    fmpz_t c;
+    fmpz_t p;
+    fmpz_init_set_ui(p, 100);
+
+    fmpz_t c, res;
     fmpz_init(c);
+    fmpz_init(res);
 
     int success_count = 0;
     int num_tests = 10;
-    int *bit = malloc(sizeof(int) * num_tests);
+    fmpz_t *bit = malloc(sizeof(fmpz_t) * num_tests);
     for (int i = 0; i < num_tests; i++) {
-        bit[i] = i * 10;
+        fmpz_init_set_ui(bit[i], i * 10);
     }
 
     for (int i = 0; i < num_tests; i++) {
         sw_encrypt_int(c, bit[i], p, non_zero, &key_pair->pk);
 
-        int res = sw_decrypt_int(c, p, key_pair);
+        sw_decrypt_int(res, c, p, key_pair);
 
-        if (res == bit[i]) {
+        if (fmpz_equal(res, bit[i])) {
             success_count++;
         }
-        printf("Before encrypt: %d, After: %d\n", bit[i], res);
+        printf("Before encrypt: %ld, After: %ld\n", fmpz_get_ui(bit[i]), fmpz_get_ui(res));
     }
 
     printf("Number of successful decryptions: %d out of %d\n", success_count, num_tests);
 
     clear_key_pair(key_pair);
     fmpz_clear(c);
+    fmpz_clear(res);
+    fmpz_clear(p);
+    for (int i = 0; i < num_tests; i++) {
+        fmpz_clear(bit[i]);
+    }
     free(bit);
 }
