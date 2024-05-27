@@ -129,20 +129,31 @@ void calculate_r_and_verify(fmpz_t r, const fmpz_poly_t w, fmpz_t d, slong n) {
     fmpz_clear(neg_one);
 }
 
-int check_modulo_conditions(const fmpz_t d, const fmpz_t w, const fmpz_t p) {
-    fmpz_t d_mod_p, w_mod_p;
+int check_modulo_conditions(const fmpz_t d, const fmpz_poly_t w, const fmpz_t p) {
+    fmpz_t d_mod_p, coeff_mod_p;
     fmpz_init(d_mod_p);
-    fmpz_init(w_mod_p);
+    fmpz_init(coeff_mod_p);
 
     fmpz_mod(d_mod_p, d, p);
-    fmpz_mod(w_mod_p, w, p);
+    if (fmpz_cmp_ui(d_mod_p, 1) != 0) {
+        fmpz_clear(d_mod_p);
+        fmpz_clear(coeff_mod_p);
+        return 0;
+    }
 
-    int conditions_met = (fmpz_cmp_ui(d_mod_p, 1) == 0) && (fmpz_cmp_ui(w_mod_p, 1) == 0);
+    slong i, length = fmpz_poly_length(w);
+    for (i = 0; i < length; i++) {
+        fmpz_mod(coeff_mod_p, fmpz_poly_get_coeff_ptr(w, i), p);
+        if (fmpz_cmp_ui(coeff_mod_p, 1) == 0) {
+            fmpz_clear(d_mod_p);
+            fmpz_clear(coeff_mod_p);
+            return i;
+        }
+    }
 
     fmpz_clear(d_mod_p);
-    fmpz_clear(w_mod_p);
-
-    return conditions_met;
+    fmpz_clear(coeff_mod_p);
+    return 0;
 }
 
 KeyPair *gen_key_pair(int n, int t, int p) {
@@ -169,17 +180,13 @@ KeyPair *gen_key_pair(int n, int t, int p) {
         fmpz_set_ui(r, 0);
         gen_random_polynomial(v, n, t);
         compute_scaled_inverse(w, d, v, n);
-        w_odd_index = find_odd_coefficient_index(w);
-        if (w_odd_index != -1 && fmpz_is_odd(d)) {
+        w_odd_index = check_modulo_conditions(d, w, key_pair->pk.p);
+        if (w_odd_index) {
             calculate_r_and_verify(r, w, d, n);
-            if (!check_modulo_conditions(d, w, key_pair->pk.p)) {
-                continue;
-            }
         }
     } while (fmpz_is_zero(r));
 
     fmpz_set(w_odd, fmpz_poly_get_coeff_ptr(w, w_odd_index));
-
     fmpz_set(key_pair->sk.w, w_odd);
     fmpz_set(key_pair->pk.d, d);
     fmpz_set(key_pair->pk.r, r);
