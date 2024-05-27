@@ -53,7 +53,7 @@ int sw_decrypt_bit(fmpz_t c, KeyPair *key){
     return result;
 }
 
-void sw_encrypt_int(fmpz_t c, int m, int p, int non_zero, PublicKey *pk){
+void sw_encrypt_int(fmpz_t c, const fmpz_t m, const fmpz_t p, int non_zero, PublicKey *pk) {
     double q;
     fmpz_poly_t u;
 
@@ -63,14 +63,14 @@ void sw_encrypt_int(fmpz_t c, int m, int p, int non_zero, PublicKey *pk){
     gen_noise_vector(u, pk->n, q);
 
     fmpz_poly_evaluate_horner_fmpz(c, u, pk->r);
-    fmpz_mul_ui(c, c, p);
-    fmpz_add_ui(c, c, m);
+    fmpz_mul(c, c, p);
+    fmpz_add(c, c, m);
     normalize_mod(c, c, pk->d);
 
     fmpz_poly_clear(u);
 }
 
-int sw_decrypt_int(fmpz_t c, int p, KeyPair *key) {
+void sw_decrypt_int(fmpz_t res, const fmpz_t c, const fmpz_t p, KeyPair *key) {
     fmpz_t temp, mod_result;
     fmpz_init(temp);
     fmpz_init(mod_result);
@@ -79,11 +79,10 @@ int sw_decrypt_int(fmpz_t c, int p, KeyPair *key) {
 
     normalize_mod(temp, temp, key->pk.d);
 
-    fmpz_mod_ui(mod_result, temp, p);
-    int result = fmpz_get_ui(mod_result);
+    fmpz_mod(mod_result, temp, p);
+    
+    fmpz_set(res, mod_result);
 
     fmpz_clear(temp);
     fmpz_clear(mod_result);
-
-    return result;
 }
