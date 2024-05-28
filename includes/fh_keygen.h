@@ -19,5 +19,5 @@ extern fmpz_t R;
 
 void init_constants();
 void generate_indices_and_values(const fmpz_t w, int s, int S, const fmpz_t d, fmpz_t *x, fmpz_t *i_k);
-void generate_data(KeyPair *key_pair, int s, int S, fmpz_t *x, fmpz_t *i_k, fmpz_t **sigma_k);
+void generate_data(KeyPair *key_pair, int s, int S, fmpz_t *x, fmpz_t *i_k, int **sigma_k);
 #endif
