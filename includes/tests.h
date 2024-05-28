@@ -9,9 +9,9 @@
 
 
 void key_pair_to_file(const KeyPair *key_pair, const char *filename);
-void test_somewhat_bit_encrypt(int n, int t);
-void test_somewhat_bit_op(int n, int t);
 void test_somewhat_int_encrypt(int n, int t, int p);
 void test_somewhat_int_op(int n, int t, int p);
 void test_somewhat_int_mul(int n, int t, int p);
+
+void test_fh_keygen(int n, int t, int p);
 #endif
