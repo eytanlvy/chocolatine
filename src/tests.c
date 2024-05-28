@@ -1,4 +1,5 @@
 #include "../includes/tests.h"
+#include "../includes/fh_keygen.h"
 
 void key_pair_to_file(const KeyPair *key_pair, const char *filename) {
 	FILE *fout = fopen(filename, "w");
@@ -216,4 +217,74 @@ void test_somewhat_int_mul(int n, int t, int p) {
     fmpz_clear(product);
     fmpz_clear(cypher_product);
     fmpz_clear(p_fmpz);
+}
+
+void test_fh_keygen(int n, int t, int p) {
+    clock_t start_time = clock();
+
+    KeyPair *key_pair = gen_key_pair(n, t, p);
+
+    clock_t end_time = clock();
+    double elapsed_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
+
+    printf("Key generation achieved in %f seconds\n", elapsed_time);
+    
+    key_pair_to_file(key_pair, "key_pair.txt");
+
+    fmpz_t *x = malloc(s * sizeof(fmpz_t));
+    fmpz_t *i_k = malloc(s * sizeof(fmpz_t));
+    fmpz_t **sigma_k = malloc(s * sizeof(fmpz_t *));
+
+    for (int k = 0; k < s; k++) {
+        sigma_k[k] = malloc(S * sizeof(fmpz_t));
+    }
+
+    generate_data(key_pair, s, S, x, i_k, sigma_k);
+
+    // Vérification de la somme
+    fmpz_t sum, temp, R_cpy;
+    fmpz_init(R_cpy);
+    fmpz_init(sum);
+    fmpz_init(temp);
+    fmpz_zero(sum);
+    fmpz_set(R_cpy, R);
+
+    for (int k = 0; k < s; k++) {
+        for (int i = 0; i < S; i++) {
+            fmpz_mul(temp, sigma_k[k][i], x[k]);
+		    fmpz_powm(R_cpy, R, i_k[k], key_pair->pk.d);
+            fmpz_mul(temp, temp, R_cpy);
+            fmpz_add(sum, sum, temp);
+        }
+    }
+    fmpz_mod(sum, sum, key_pair->pk.d);
+
+    fmpz_t w_mod_d;
+    fmpz_init(w_mod_d);
+    fmpz_mod(w_mod_d, key_pair->sk.w, key_pair->pk.d);
+
+    if (fmpz_equal(sum, w_mod_d)) {
+        printf("Verification successful: sum equals w mod d.\n");
+    } else {
+        printf("Verification failed: sum does not equal w mod d.\n");
+    }
+
+    fmpz_clear(sum);
+    fmpz_clear(temp);
+    fmpz_clear(w_mod_d);
+
+    for (int k = 0; k < s; k++) {
+        fmpz_clear(x[k]);
+        fmpz_clear(i_k[k]);
+        for (int i = 0; i < S; i++) {
+            fmpz_clear(sigma_k[k][i]);
+        }
+        free(sigma_k[k]);
+    }
+    free(x);
+    free(i_k);
+    free(sigma_k);
+    fmpz_clear(R);
+
+    clear_key_pair(key_pair);
 }
