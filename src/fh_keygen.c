@@ -52,7 +52,7 @@ void generate_indices_and_values(const fmpz_t w, int s, int S, const fmpz_t d, f
     fmpz_clear(inv_temp2);
 }
 
-void generate_data(KeyPair *key_pair, int s, int S, fmpz_t *x, fmpz_t *i_k, fmpz_t **sigma_k) {
+void generate_data(KeyPair *key_pair, int s, int S, fmpz_t *x, fmpz_t *i_k, int **sigma_k) {
     const fmpz_t *w = &(key_pair->sk.w);
     const fmpz_t *d = &(key_pair->pk.d);
 
@@ -60,11 +60,10 @@ void generate_data(KeyPair *key_pair, int s, int S, fmpz_t *x, fmpz_t *i_k, fmpz
 
     for (int k = 0; k < s; k++) {
         for (int i = 0; i < S; i++) {
-            fmpz_init(sigma_k[k][i]);
             if (i == fmpz_get_ui(i_k[k])) {
-                fmpz_set_ui(sigma_k[k][i], 1);
+                sigma_k[k][i] = 1;
             } else {
-                fmpz_set_ui(sigma_k[k][i], 0);
+                sigma_k[k][i] = 0;
             }
         }
     }

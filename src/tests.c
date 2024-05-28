@@ -1,5 +1,6 @@
 #include "../includes/tests.h"
 #include "../includes/fh_keygen.h"
+#include "../includes/compress_key.h"
 
 void key_pair_to_file(const KeyPair *key_pair, const char *filename) {
 	FILE *fout = fopen(filename, "w");
@@ -233,56 +234,59 @@ void test_fh_keygen(int n, int t, int p) {
 
     fmpz_t *x = malloc(s * sizeof(fmpz_t));
     fmpz_t *i_k = malloc(s * sizeof(fmpz_t));
-    fmpz_t **sigma_k = malloc(s * sizeof(fmpz_t *));
-
+    int **sigma_k = malloc(s * sizeof(int *));
+    
     for (int k = 0; k < s; k++) {
-        sigma_k[k] = malloc(S * sizeof(fmpz_t));
+        sigma_k[k] = malloc(S * sizeof(int));
     }
 
     generate_data(key_pair, s, S, x, i_k, sigma_k);
 
-    // Vérification de la somme
-    fmpz_t sum, temp, R_cpy;
-    fmpz_init(R_cpy);
-    fmpz_init(sum);
-    fmpz_init(temp);
-    fmpz_zero(sum);
-    fmpz_set(R_cpy, R);
+    // Initialiser les vecteurs eta
+    int q = calculate_q(S);
+    printf("q = %d\n", q);
+    fmpz_t **eta = malloc(s * sizeof(fmpz_t *));
+    initialize_eta_vectors(eta, s, q);
 
+    // Définir les valeurs de eta en fonction des vecteurs sigma_k
+    set_eta_values(eta, s, q, sigma_k);
+
+    // Vérifier les indices
     for (int k = 0; k < s; k++) {
+        int found = 0;
         for (int i = 0; i < S; i++) {
-            fmpz_mul(temp, sigma_k[k][i], x[k]);
-		    fmpz_powm(R_cpy, R, i_k[k], key_pair->pk.d);
-            fmpz_mul(temp, temp, R_cpy);
-            fmpz_add(sum, sum, temp);
+            if (sigma_k[k][i] == 1) {
+                int a, b;
+                for (a = 0; a < q; a++) {
+                    for (b = a; b < q; b++) {
+                        if (fmpz_get_ui(eta[k][a]) == 1 && fmpz_get_ui(eta[k][b]) == 1) {
+                            int index = ind(a, b, q); // ind est base 1
+                            if (index == i) {
+                                found = 1;
+                                printf("Verification successful for sigma_k[%d]\n", k);
+                            }
+                        }
+                    }
+                }
+                if (!found) {
+                    printf("Verification failed for sigma_k[%d][%d]\n", k, i);
+                }
+            }
         }
     }
-    fmpz_mod(sum, sum, key_pair->pk.d);
-
-    fmpz_t w_mod_d;
-    fmpz_init(w_mod_d);
-    fmpz_mod(w_mod_d, key_pair->sk.w, key_pair->pk.d);
-
-    if (fmpz_equal(sum, w_mod_d)) {
-        printf("Verification successful: sum equals w mod d.\n");
-    } else {
-        printf("Verification failed: sum does not equal w mod d.\n");
-    }
-
-    fmpz_clear(sum);
-    fmpz_clear(temp);
-    fmpz_clear(w_mod_d);
 
     for (int k = 0; k < s; k++) {
         fmpz_clear(x[k]);
         fmpz_clear(i_k[k]);
-        for (int i = 0; i < S; i++) {
-            fmpz_clear(sigma_k[k][i]);
+        for (int i = 0; i < q; i++) {
+            fmpz_clear(eta[k][i]);
         }
+        free(eta[k]);
         free(sigma_k[k]);
     }
     free(x);
     free(i_k);
+    free(eta);
     free(sigma_k);
     fmpz_clear(R);
 
