@@ -1,6 +1,5 @@
 #include "../includes/tests.h"
-#include "../includes/fh_keygen.h"
-#include "../includes/compress_key.h"
+#include "../includes/bootstrapping.h"
 
 void key_pair_to_file(const KeyPair *key_pair, const char *filename) {
 	FILE *fout = fopen(filename, "w");
@@ -223,72 +222,20 @@ void test_somewhat_int_mul(int n, int t, int p) {
 void test_fh_keygen(int n, int t, int p) {
     clock_t start_time = clock();
 
-    KeyPair *key_pair = gen_key_pair(n, t, p);
+    FhKeyPair *key_pair = gen_fh_key_pair(n, t, p);
 
     clock_t end_time = clock();
     double elapsed_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
 
     printf("Key generation achieved in %f seconds\n", elapsed_time);
     
-    key_pair_to_file(key_pair, "key_pair.txt");
-
-    fmpz_t *x = malloc(s * sizeof(fmpz_t));
-    fmpz_t *i_k = malloc(s * sizeof(fmpz_t));
-    int **sigma_k = malloc(s * sizeof(int *));
-    
     for (int k = 0; k < s; k++) {
-        sigma_k[k] = malloc(S * sizeof(int));
-    }
-
-    generate_data(key_pair, s, S, x, i_k, sigma_k);
-
-    // Initialiser les vecteurs eta
-    int q = calculate_q(S);
-    printf("q = %d\n", q);
-    fmpz_t **eta = malloc(s * sizeof(fmpz_t *));
-    initialize_eta_vectors(eta, s, q);
-
-    // Définir les valeurs de eta en fonction des vecteurs sigma_k
-    set_eta_values(eta, s, q, sigma_k);
-
-    // Vérifier les indices
-    for (int k = 0; k < s; k++) {
-        int found = 0;
-        for (int i = 0; i < S; i++) {
-            if (sigma_k[k][i] == 1) {
-                int a, b;
-                for (a = 0; a < q; a++) {
-                    for (b = a; b < q; b++) {
-                        if (fmpz_get_ui(eta[k][a]) == 1 && fmpz_get_ui(eta[k][b]) == 1) {
-                            int index = ind(a, b, q); // ind est base 1
-                            if (index == i) {
-                                found = 1;
-                                printf("Verification successful for sigma_k[%d]\n", k);
-                            }
-                        }
-                    }
-                }
-                if (!found) {
-                    printf("Verification failed for sigma_k[%d][%d]\n", k, i);
-                }
-            }
-        }
-    }
-
-    for (int k = 0; k < s; k++) {
-        fmpz_clear(x[k]);
-        fmpz_clear(i_k[k]);
         for (int i = 0; i < q; i++) {
-            fmpz_clear(eta[k][i]);
+            if (fmpz_cmp_ui((key_pair->sk.eta)[k][i], 0) != 0)
+                printf("eta[%d][%d] = %ld\n", k, i, fmpz_get_ui((key_pair->sk.eta)[k][i]));
         }
-        free(eta[k]);
-        free(sigma_k[k]);
+        printf("\n");
     }
-    free(x);
-    free(i_k);
-    free(eta);
-    free(sigma_k);
-    fmpz_clear(R);
 
-    clear_key_pair(key_pair);
+    clear_fh_key_pair(key_pair);
 }

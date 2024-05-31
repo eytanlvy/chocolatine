@@ -1,13 +1,59 @@
 #include "../includes/fh_keygen.h"
+#include "../includes/compress_key.h"
+#include "../includes/bootstrapping.h"
 
 const int S = 1024;
 const int s = 15;
+int q;
 fmpz_t R;
 
 void init_constants(){
 	fmpz_init(R);
     fmpz_set_ui(R, 1);
 	fmpz_mul_2exp(R, R, 51);
+
+    calculate_q(S);
+}
+
+void init_fh_key_pair(FhKeyPair *key_pair){
+    fmpz_init(key_pair->pk.d);
+    fmpz_init(key_pair->pk.r);
+    fmpz_init(key_pair->pk.p);
+    
+    key_pair->pk.x = malloc(s * sizeof(fmpz_t));
+    key_pair->pk.eta_hint = malloc(s * sizeof(fmpz_t*));
+    key_pair->sk.eta = malloc(s * sizeof(fmpz_t*));
+
+    for (int i = 0; i < s; i++){
+        fmpz_init(key_pair->pk.x[i]);
+        key_pair->pk.eta_hint[i] = malloc(q * sizeof(fmpz_t));
+        key_pair->sk.eta[i] = malloc(q * sizeof(fmpz_t));
+        for (int j = 0; j < q; j++){
+            fmpz_init(key_pair->pk.eta_hint[i][j]);
+            fmpz_init(key_pair->sk.eta[i][j]);
+            fmpz_set_ui(key_pair->sk.eta[i][j], 0);
+        }
+    }
+}
+
+void clear_fh_key_pair(FhKeyPair *key_pair){
+    fmpz_clear(key_pair->pk.d);
+    fmpz_clear(key_pair->pk.r);
+    fmpz_clear(key_pair->pk.p);
+    for (int i = 0; i < s; i++){
+        fmpz_clear(key_pair->pk.x[i]);
+        for (int j = 0; j < q; j++){
+            fmpz_clear(key_pair->sk.eta[i][j]);
+            fmpz_clear(key_pair->pk.eta_hint[i][j]);
+        }
+        free(key_pair->pk.eta_hint[i]);
+        free(key_pair->sk.eta[i]);
+    }
+    free(key_pair->sk.eta);
+    free(key_pair->pk.eta_hint);
+    free(key_pair->pk.x);
+
+    free(key_pair);
 }
 
 void generate_indices_and_values(const fmpz_t w, int s, int S, const fmpz_t d, fmpz_t *x, fmpz_t *i_k) {
@@ -67,4 +113,55 @@ void generate_data(KeyPair *key_pair, int s, int S, fmpz_t *x, fmpz_t *i_k, int 
             }
         }
     }
+}
+
+void encrypt_sk(FhKeyPair *fh_key_pair) {
+    int non_zero = 15;
+    fh_key_pair->pk.eta_hint = malloc(s*sizeof(fmpz_t*));
+
+    for (int k = 0; k < s; k++){
+        (fh_key_pair->pk.eta_hint)[k] = malloc(q * sizeof(fmpz_t));
+        for (int i = 0; i < q; i++){
+            fmpz_init((fh_key_pair->pk.eta_hint)[k][i]);
+            fh_encrypt((fh_key_pair->pk.eta_hint)[k][i], (fh_key_pair->sk.eta)[k][i], non_zero, &fh_key_pair->pk);
+        }
+    }
+}
+
+FhKeyPair *gen_fh_key_pair(int n, int t, int p) {
+    init_constants();
+    FhKeyPair *fh_key_pair;
+    KeyPair *key_pair;
+    
+    key_pair = gen_key_pair(n, t, p);
+    printf("Key pair generated\n");
+
+    fh_key_pair = (FhKeyPair *)malloc(sizeof(FhKeyPair));
+    init_fh_key_pair(fh_key_pair);
+
+    fmpz_t *i_k = malloc(s * sizeof(fmpz_t));
+    int **sigma_k = malloc(s * sizeof(int *));
+    
+    for (int k = 0; k < s; k++) {
+        sigma_k[k] = malloc(S * sizeof(int));
+    }
+
+    generate_data(key_pair, s, S, fh_key_pair->pk.x, i_k, sigma_k);
+
+    set_eta_values(fh_key_pair->sk.eta, s, q, sigma_k);
+
+    fh_key_pair->pk.n = key_pair->pk.n;
+    fmpz_set(fh_key_pair->pk.d, key_pair->pk.d);
+    fmpz_set(fh_key_pair->pk.r, key_pair->pk.r);
+    fmpz_set(fh_key_pair->pk.p, key_pair->pk.p);
+
+    clear_key_pair(key_pair);
+    free(i_k);
+    for (int k = 0; k < s; k++) {
+        free(sigma_k[k]);
+    }
+    free(sigma_k);
+    encrypt_sk(fh_key_pair);
+
+    return fh_key_pair;
 }

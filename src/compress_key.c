@@ -1,17 +1,8 @@
+#include "../includes/fh_keygen.h"
 #include "../includes/compress_key.h"
 
-int calculate_q(int S) {
-    return (int)(ceil(sqrt(2 * S)) + 1);
-}
-
-void initialize_eta_vectors(fmpz_t **eta, int s, int q) {
-    for (int k = 0; k < s; k++) {
-        eta[k] = malloc(q * sizeof(fmpz_t));
-        for (int i = 0; i < q; i++) {
-            fmpz_init(eta[k][i]);
-            fmpz_set_ui(eta[k][i], 0);
-        }
-    }
+void calculate_q(int S) {
+    q = (int)(ceil(sqrt(2 * S)) + 1);
 }
 
 int ind(int a, int b, int q) {
