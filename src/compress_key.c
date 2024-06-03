@@ -2,7 +2,7 @@
 #include "../includes/compress_key.h"
 
 void calculate_q(int S) {
-    q = (int)(ceil(sqrt(2 * S)) + 1);
+    // q = (int)(ceil(sqrt(2 * S)) + 1);
 }
 
 int ind(int a, int b, int q) {
@@ -23,6 +23,8 @@ void find_a_b(int index, int q, int *a, int *b) {
 
 void set_eta_values(fmpz_t **eta, int s, int q, int **sigma_k){
 	int a, b;
+	a = 0;
+	b = 0;
 	for (int k = 0; k < s; k++) {
 		for (int i = 0; i < S; i++) {
 			if (sigma_k[k][i] == 1) {
