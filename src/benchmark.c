@@ -93,20 +93,16 @@ void benchmark_keygen(char* filename){
     int nb_process = 0;
     int index;
     double** values = mmap(NULL, (n_end-n_start+1)*sizeof(double*),PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS,-1, 0);
-    if(values == MAP_FAILED){
-        perror("mmap failed");
-        exit(1);
-    }
     int** nb_mult = mmap(NULL, (n_end-n_start+1)*sizeof(int*),PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS,-1, 0);
-    if(nb_mult == MAP_FAILED){
+    if(nb_mult == MAP_FAILED || values == MAP_FAILED){
         perror("mmap failed");
         exit(1);
     }
     for(int i = n_start; i <= n_end; i ++){
         values[i-n_start] = mmap(NULL, (t_end-t_start+1)*sizeof(double),PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS,-1, 0);
-        values[i-n_start] = mmap(NULL, (t_end-t_start+1)*sizeof(int),PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS,-1, 0);
-        if(values[i-n_start] == MAP_FAILED){
-            perror("mmap failed");
+        nb_mult[i-n_start] = mmap(NULL, (t_end-t_start+1)*sizeof(int),PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS,-1, 0);
+        if(values[i-n_start] == MAP_FAILED || nb_mult[i-n_start] == MAP_FAILED){
+            perror("mmap 2 failed");
             exit(1);
         }
         if(nb_process >= max_process){
@@ -128,6 +124,7 @@ void benchmark_keygen(char* filename){
         if(pid[index] == 0){//child
             for(int j = t_start; j <= t_end; j++){
                 values[i-n_start][j-t_start] = average_time_n_keygen(nb_iterations,1<<i,j*100,p, nb_mult[i-n_start]+j-t_start);
+                fprintf(stderr,"average time for n = %i, t = %i : %f, nb_mult = %i\n",1<<i,j*100,values[i-n_start][j-t_start],nb_mult[i-n_start][j-t_start]);
             }
             exit(0);
         }
