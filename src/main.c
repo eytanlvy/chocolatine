@@ -8,6 +8,6 @@ int main(int argc, char **argv) {
 	// int p = (argc > 3) ? atoi(argv[3]) : 2;
 	
 
-	benchmark_keygen();
+	benchmark_keygen("result.txt");
     return 0;
 }

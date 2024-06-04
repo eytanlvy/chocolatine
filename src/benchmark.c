@@ -3,6 +3,8 @@
 #include<sys/types.h>
 #include<sys/mman.h>
 #include<sys/wait.h>
+#include<fcntl.h>
+#include<sys/stat.h>
 
 
 static double average_time_n_keygen(int nb_keys, int n, int t, int p){
@@ -26,13 +28,22 @@ int find_pid(pid_t* pid_array, pid_t pid, int nb_process){
     return -1;   
 }
 
-void benchmark_keygen(){
+void benchmark_keygen(char* filename){
     int n_start = 8;
     int n_end = 12;
     int t_start = 2;
-    int t_end = 10;
+    int t_end = 8;
     int p = 10;
-    int nb_iterations = 1;
+    int nb_iterations = 4;
+    if(filename != NULL){
+        int output_file = open(filename,O_WRONLY | O_APPEND | O_CREAT,0666);
+        if(output_file < 0){
+            perror("[!] Error : open failed on file given in argument");
+            exit(1);                                                                                                            
+        }
+        dup2(output_file, STDOUT_FILENO);
+    }
+
 
     int max_process = sysconf(_SC_NPROCESSORS_ONLN);
     pid_t* pid = malloc(max_process*sizeof(pid_t));
@@ -55,12 +66,10 @@ void benchmark_keygen(){
                 perror("find_pid failed");
                 exit(1);
             }
-            printf("[+-]\n");
             pid[index] = fork();
         }
         else{
             index = nb_process;
-            printf("[+]\n");
             pid[nb_process++] = fork();
         }
         if(pid[index] < 0){
