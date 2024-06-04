@@ -29,12 +29,12 @@ int find_pid(pid_t* pid_array, pid_t pid, int nb_process){
 }
 
 void benchmark_keygen(char* filename){
-    int n_start = 8;
-    int n_end = 12;
+    int n_start = 6;
+    int n_end = 10;
     int t_start = 2;
-    int t_end = 8;
+    int t_end = 6;
     int p = 10;
-    int nb_iterations = 4;
+    int nb_iterations = 1;
     if(filename != NULL){
         int output_file = open(filename,O_WRONLY | O_APPEND | O_CREAT,0666);
         if(output_file < 0){
